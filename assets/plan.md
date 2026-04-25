@@ -38,6 +38,7 @@ All manual scenarios use `dense_vector` with `int8_hnsw` quantization and the `.
     *   **Mapping:** `dense_vector` (1024 dims, `int8_hnsw`), `parent_id` (keyword), `chunk_index` (integer), `chunk_text` (text).
     *   **Ingest:** Each chunk indexed as an independent top-level document.
     *   **Query:** kNN vector search returning top-5 chunks with scores.
+    *   **Dedup:** Field collapsing on `parent_id` deduplicates results when multiple chunks from the same document match.
 
 *   **Scenario 4: Hybrid Search with Reranking**
     *   **Concept:** Query-level capability — queries the same Scenario 3 index, no reindexing needed.

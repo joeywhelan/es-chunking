@@ -17,7 +17,6 @@ https://joeywhelan.github.io/es-chunking/
 ## Architecture <a name="architecture"></a>
 ![architecture](assets/arch.jpg) 
 
-
 ## Features <a name="features"></a>
 - Jupyter notebook
 - Builds an Elastic Serverless deployment via Terraform

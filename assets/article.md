@@ -3,7 +3,7 @@
 # Elasticsearch Chunking for Agentic AI: Choosing the Right Strategy
 *The chunking strategy you pick determines what your agents see — and how well they reason.*
 
-Document chunking is the process of breaking down large documents into smaller segments before they are converted to vectors and stored in a database.  This process aids an agent performing search against that database by pinpointing the exact excerpt of that document needed to answer a query.  The alternative would be creating a vector of the entire document.  In that scenario, important details get washed out by the surrounding context.  Net, an effective chunking strategy increases the signal to noise ratio of the context delivered to an agent.
+Document chunking is the process of breaking down large documents into smaller segments before they are converted to vectors and stored in a database.  This process aids an agent performing a search against that database by pinpointing the exact excerpt of that document needed to answer a query.  The alternative would be creating a vector of the entire document.  In that scenario, important details get washed out by the surrounding context.  Net, an effective chunking strategy increases the signal-to-noise ratio of the context delivered to an agent.
 
 ---
 
@@ -85,7 +85,7 @@ ES auto-chunked into 18 chunks:
   Chunk 17: 177 words —  ### Health Checks and SLOs  Health checks expose the status...
 ```
 ### Search
-Chunks are stored in an internal data structure for each document.  A search yields the entire document, but you can access the chunks of that document in relevance order via [highlight](https://www.elastic.co/docs/reference/elasticsearch/rest-apis/highlighting).
+Chunks are stored in an internal data structure for each document.  A search returns the entire document, but you can access its chunks in relevance order via [highlight](https://www.elastic.co/docs/reference/elasticsearch/rest-apis/highlighting).
 ```python
 QUERY = "How do distributed systems handle failures and recovery?"
 response = es.search(
@@ -125,7 +125,7 @@ Search Results (with semantic highlighting, in order of relevance)
 
 ### Appraisal 
 **Pros:**
-- Simplest implementation — index raw text and ES handles chunking and embedding automatically
+- Simplest implementation — index raw text, and ES handles chunking and embedding automatically
 - Zero pipeline overhead — no external chunking libraries or embedding infrastructure needed
 - Semantic highlighting retrieves the most relevant chunks, ranked by similarity
 - Embedding model is configurable via `inference_id` in the field mapping
@@ -195,7 +195,7 @@ Chunk count: 24
   Chunk 23: 177 words — ### Health Checks and SLOs  Health checks expose the status ...
 ```
 ### Search
-I use the same query as the previous scenario with `highlight` leveraged to obtain individual chunks ordered by relevance.
+I use the same query as in the previous scenario, using `highlight` to obtain individual chunks ordered by relevance.
 ```python
 QUERY = "How do distributed systems handle failures and recovery?"
 response = es.search(
@@ -257,7 +257,7 @@ Search Results (with semantic highlighting)
 ## External Chunking — One Document Per Chunk
 ![scenario 3](scenario3.jpg)
 ### Ingest
-For this scenario, I need to manage both chunking and embeddings client-side as `semantic_text` is not used.  I use the [semchunk](https://github.com/isaacus-dev/semchunk) Python library to semantically split the document into coherent chunks.  I then use the Elastic [Inference API](https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-inference-inference) to embed each chunk via `.jina-embeddings-v5-text-small` - the same model used in the previous two examples.
+For this scenario, I need to manage both chunking and embeddings client-side, as `semantic_text` is not used.  I use the [semchunk](https://github.com/isaacus-dev/semchunk) Python library to semantically split the document into coherent chunks.  I then use the Elastic [Inference API](https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-inference-inference) to embed each chunk via `.jina-embeddings-v5-text-small` - the same model used in the previous two examples.
 
 ```python
 from semchunk import chunk
@@ -439,10 +439,7 @@ Search Results (Hybrid: Linear + Reranking)
 **Pros:**
 - Each chunk is an independent document — can update, delete, or reindex individual chunks without touching others
 - Per-chunk metadata — attach any fields (parent_id, section headers, tags, timestamps) for filtering
-- Full BM25 support on `chunk_text` — enables lexical search, hybrid BM25+vector, and standard highlighting
-- Choice of embedding model — use any model via ES inference endpoints or generate embeddings externally
 - Field collapsing on `parent_id` deduplicates results when multiple chunks from the same document match
-- `int8_hnsw` quantization reduces vector storage with minimal recall loss
 
 **Cons:**
 - Requires an external chunking pipeline — application manages splitting and embedding before indexing

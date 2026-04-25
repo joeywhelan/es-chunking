@@ -352,14 +352,14 @@
       <div class="strategy-num">3</div>
       <div class="strategy-text">
         <strong>External Chunking — One Document Per Chunk</strong>
-        <span class="muted">Each chunk is an independent ES document with <code>dense_vector</code>. Enables per-chunk metadata, hybrid search, and reranking.</span>
+        <span class="muted">Each chunk is an independent ES document with <code>dense_vector</code>.</span>
       </div>
     </li>
     <li>
       <div class="strategy-num">4</div>
       <div class="strategy-text">
         <strong>External Chunking — Nested Chunks</strong>
-        <span class="muted">Chunks stored as nested objects inside the parent document. Atomic indexing, strict document cohesion.</span>
+        <span class="muted">Chunks stored as nested objects inside the parent document.</span>
       </div>
     </li>
   </ul>
@@ -379,7 +379,7 @@
         <li>Splits into chunks via the <span class="teal">recursive</span> strategy, aligned to markdown headings</li>
         <li>Generates embeddings via <code>.jina-embeddings-v5-text-small</code> on EIS</li>
         <li>Stores chunks internally per document</li>
-        <li>Returns ranked chunks via <span class="teal">semantic highlighting</span></li>
+        <li>Returns ranked chunks via <span class="teal">highlighting</span></li>
       </ul>
     </div>
   </div>
@@ -476,7 +476,7 @@ Chunk 17: 177 words —  ### Health Checks...</div>
         <li>Simplest implementation — index raw text, ES does the rest</li>
         <li>Zero pipeline overhead — no external libraries or local inference</li>
         <li>Configurable via <code>chunking_settings</code></li>
-        <li>Semantic highlighting returns chunks ranked by similarity</li>
+        <li>Highlighting returns chunks ranked by similarity</li>
         <li>Compatible with hybrid BM25+vector search</li>
       </ul>
     </div>
@@ -567,7 +567,7 @@ es.index(index=S2_INDEX,
         <li>Application controls exact chunk boundaries</li>
         <li>ES still manages embedding — no local inference</li>
         <li>Same simple <code>semantic_text</code> mapping as Strategy 1</li>
-        <li>Semantic highlighting retrieves the most relevant pre-defined chunks</li>
+        <li>Highlighting retrieves the most relevant pre-defined chunks</li>
       </ul>
     </div>
     <div class="card cons">
@@ -595,17 +595,17 @@ es.index(index=S2_INDEX,
   <h2>External Chunking — One Document Per Chunk</h2>
   <div class="cols" style="grid-template-columns:1.25fr 0.75fr; align-items:start;">
     <div>
-      <img src="assets/scenario3.jpg" style="width:100%; max-height:440px; object-fit:contain; border-radius:6px;" alt="Scenario 3">
+      <img src="assets/scenario3.jpg" style="width:100%; max-height:360px; object-fit:contain; border-radius:6px;" alt="Scenario 3">
     </div>
     <div>
-      <p>Each chunk is indexed as an <span class="teal">independent top-level document</span> with a <code>dense_vector</code> field.</p>
-      <ul style="margin-top:0.3em;">
-        <li>Chunking: <code>semchunk</code> library (<code>chunk_size=200</code>)</li>
-        <li>Embeddings: Elastic Inference API</li>
-        <li>Per-chunk metadata: <code>parent_id</code>, <code>chunk_index</code></li>
-        <li>Vector quantization: <code>int8_hnsw</code></li>
+      <p style="font-size:0.72em; line-height:1.4;">Each chunk is indexed as an <span class="teal">independent top-level document</span> with a <code>dense_vector</code> field.</p>
+      <ul style="margin-top:0.15em;">
+        <li style="font-size:0.72em; line-height:1.4; margin-bottom:0.12em;">Chunking: <code>semchunk</code> library (<code>chunk_size=200</code>)</li>
+        <li style="font-size:0.72em; line-height:1.4; margin-bottom:0.12em;">Embeddings: Elastic Inference API</li>
+        <li style="font-size:0.72em; line-height:1.4; margin-bottom:0.12em;">Per-chunk metadata: <code>parent_id</code>, <code>chunk_index</code></li>
+        <li style="font-size:0.72em; line-height:1.4; margin-bottom:0.12em;">Vector quantization: <code>int8_hnsw</code></li>
+        <li style="font-size:0.72em; line-height:1.4; margin-bottom:0.12em;" class="muted">Same index demonstrates hybrid search + reranking — no reindexing needed</li>
       </ul>
-      <p style="margin-top:0.3em; color:var(--elastic-muted); font-size:0.78em;">Same index also demonstrates hybrid search + reranking — no reindexing needed</p>
     </div>
   </div>
 </section>
@@ -723,8 +723,6 @@ Score: 1.0068  Chunk #1
       <ul>
         <li>Each chunk is independent — update, delete, or reindex without touching others</li>
         <li>Per-chunk metadata for filtering</li>
-        <li>Full BM25 support — hybrid search and standard highlighting</li>
-        <li>Any embedding model via ES inference endpoints; <code>int8_hnsw</code> quantization for efficient storage</li>
       </ul>
     </div>
     <div class="card cons">
