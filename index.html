@@ -1,0 +1,899 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Elasticsearch Chunking for Agentic AI</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/theme/black.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/plugin/highlight/monokai.css">
+  <style>
+    :root {
+      --elastic-teal:    #00BFB3;
+      --elastic-pink:    #F04E98;
+      --elastic-yellow:  #FEC514;
+      --elastic-dark:    #07192b;
+      --elastic-code-bg: #1D1E24;
+      --elastic-muted:   #98A2B3;
+    }
+
+    body, .reveal-viewport, .reveal, .reveal .slides {
+      background: var(--elastic-dark);
+    }
+
+    .reveal {
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      color: #ffffff;
+    }
+
+    /* Clip each slide cleanly at its boundaries */
+    .reveal .slides section {
+      text-align: left;
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+
+    .reveal h1, .reveal h2, .reveal h3 {
+      color: var(--elastic-teal);
+      text-transform: none;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .reveal h1 { font-size: 2em; line-height: 1.2; }
+
+    .reveal h2 {
+      font-size: 1.25em;
+      border-bottom: 2px solid var(--elastic-teal);
+      padding-bottom: 0.12em;
+      margin-top: 0;
+      margin-bottom: 0.3em;
+    }
+
+    .reveal h3 { font-size: 0.85em; margin: 0 0 0.3em 0; }
+
+    .reveal p  { font-size: 0.78em; line-height: 1.5;  margin: 0 0 0.4em 0; }
+    .reveal li { font-size: 0.78em; line-height: 1.5;  margin-bottom: 0.2em; }
+    .reveal ul { margin-left: 0.9em; margin-top: 0; margin-bottom: 0; }
+
+    /* Inline code */
+    .reveal code {
+      background: rgba(0,191,179,0.13);
+      padding: 0.06em 0.28em;
+      border-radius: 3px;
+      color: var(--elastic-teal);
+      font-size: 0.9em;
+    }
+
+    /* Code blocks */
+    .reveal pre {
+      font-size: 0.58em;
+      box-shadow: none;
+      width: 100%;
+      background: var(--elastic-code-bg);
+      border-radius: 6px;
+      border-left: 3px solid var(--elastic-teal);
+      margin: 0;
+    }
+    .reveal pre code {
+      background: transparent;
+      color: inherit;
+      padding: 0.65em 0.9em;
+      max-height: 340px;
+      overflow-y: auto;
+      overflow-x: auto;
+    }
+
+    /* Utility colours */
+    .teal   { color: var(--elastic-teal); }
+    .pink   { color: var(--elastic-pink); }
+    .yellow { color: var(--elastic-yellow); }
+    .muted  { color: var(--elastic-muted); }
+
+    /* Layout helpers */
+    .cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1em;
+      align-items: start;
+    }
+    .cols-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.75em;
+      align-items: start;
+    }
+    .cols > *, .cols-3 > * { min-width: 0; }
+
+    /* Strategy badge */
+    .badge {
+      display: inline-block;
+      background: var(--elastic-teal);
+      color: #07192b;
+      font-weight: 700;
+      font-size: 0.5em;
+      padding: 0.15em 0.7em;
+      border-radius: 20px;
+      margin-bottom: 0.2em;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    /* Pros / Cons / Good-For cards */
+    .card {
+      background: rgba(255,255,255,0.05);
+      border-radius: 6px;
+      padding: 0.5em 0.7em;
+      border-top: 3px solid var(--elastic-teal);
+    }
+    .card.cons { border-top-color: var(--elastic-pink); }
+    .card.good { border-top-color: var(--elastic-yellow); }
+
+    .card h3 { border: none !important; }
+    .card h3.teal   { color: var(--elastic-teal) !important; }
+    .card h3.pink   { color: var(--elastic-pink) !important; }
+    .card h3.yellow { color: var(--elastic-yellow) !important; }
+
+    .card ul { margin: 0; padding-left: 1em; }
+    .card li { font-size: 0.68em !important; margin-bottom: 0.12em; line-height: 1.35; }
+
+    /* Results block */
+    .results {
+      background: var(--elastic-code-bg);
+      border-radius: 6px;
+      border-left: 3px solid var(--elastic-yellow);
+      padding: 0.5em 0.7em;
+      font-family: 'Fira Mono', 'Consolas', monospace;
+      font-size: 0.55em;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      overflow-x: auto;
+      color: #e0e0e0;
+    }
+
+    /* Numbered strategy overview */
+    .strategy-list { list-style: none; padding: 0; margin: 0; }
+    .strategy-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.7em;
+      margin-bottom: 0.65em;
+    }
+    .strategy-num {
+      background: var(--elastic-teal);
+      color: #07192b;
+      font-weight: 700;
+      min-width: 1.7em;
+      height: 1.7em;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8em;
+      flex-shrink: 0;
+    }
+    .strategy-text { font-size: 0.78em; line-height: 1.45; }
+    .strategy-text strong { color: var(--elastic-teal); display: block; margin-bottom: 0.08em; }
+
+    /* Decision table */
+    table {
+      font-size: 0.58em;
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 0.1em;
+    }
+    th {
+      background: var(--elastic-teal);
+      color: #07192b;
+      padding: 0.38em 0.55em;
+      text-align: left;
+      font-weight: 700;
+    }
+    td {
+      padding: 0.3em 0.55em;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      vertical-align: middle;
+      color: #ddd;
+    }
+    tr:nth-child(even) td { background: rgba(255,255,255,0.04); }
+    td:first-child { color: #fff; font-weight: 600; }
+
+    /* Conclusion bullets */
+    .conclusion-point {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5em;
+      margin-bottom: 0.55em;
+      font-size: 0.78em;
+    }
+    .conclusion-point .dot {
+      color: var(--elastic-teal);
+      font-size: 1.3em;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    /* Progress bar */
+    .reveal .progress { color: var(--elastic-teal); }
+
+    /* Slide number */
+    .reveal .slide-number {
+      background: transparent;
+      color: var(--elastic-muted);
+      font-size: 0.75em;
+      right: auto;
+      left: 8px;
+      bottom: 8px;
+    }
+
+    /* Title slide */
+    .cover-overlay { padding: 2em 1.5em; text-align: center; }
+    .cover-title {
+      font-size: 1.9em;
+      font-weight: 700;
+      color: #ffffff;
+      line-height: 1.2;
+      text-shadow: 0 2px 24px rgba(0,0,0,0.85);
+    }
+    .cover-strategy {
+      font-size: 1em;
+      font-weight: 600;
+      color: var(--elastic-teal);
+      margin-top: 0.2em;
+    }
+    .cover-subtitle {
+      font-size: 0.78em;
+      color: rgba(255,255,255,0.75);
+      font-style: italic;
+      margin-top: 0.9em;
+    }
+    .cover-pills {
+      margin-top: 1.4em;
+      display: flex;
+      gap: 0.5em;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .pill {
+      background: rgba(0,191,179,0.18);
+      color: var(--elastic-teal);
+      border: 1px solid rgba(0,191,179,0.4);
+      border-radius: 20px;
+      padding: 0.18em 0.7em;
+      font-size: 0.58em;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+  </style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- ─── Slide 1: Title ─────────────────────────────────────────────────────── -->
+<section data-background-image="assets/cover.jpg"
+         data-background-size="cover"
+         data-background-opacity="0.3">
+  <div class="cover-overlay">
+    <div class="badge">Elastic Architecture</div>
+    <div class="cover-title">Elasticsearch Chunking<br>for Agentic AI</div>
+    <div class="cover-strategy">Choosing the Right Strategy</div>
+    <div class="cover-subtitle">
+      "The chunking strategy you pick determines what your agents see — and how well they reason."
+    </div>
+    <div class="cover-pills">
+      <span class="pill">Elastic Serverless</span>
+      <span class="pill">semantic_text</span>
+      <span class="pill">dense_vector</span>
+      <span class="pill">Hybrid Search</span>
+      <span class="pill">Reranking</span>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Slide 2: The Problem ───────────────────────────────────────────────── -->
+<section>
+  <h2>Why Chunking Matters</h2>
+  <div class="cols" style="grid-template-columns:1.15fr 0.85fr; align-items:center; gap:2em;">
+    <div>
+      <p>Document chunking breaks large documents into smaller segments before converting them to vectors for storage and retrieval.</p>
+      <p style="margin-top:0.7em;">This aids an agent by <span class="teal">pinpointing the exact excerpt</span> needed to answer a query — rather than retrieving the entire document.</p>
+      <p style="margin-top:0.7em;"><strong>The alternative</strong> — vectorizing the whole document — means important details get <span class="pink">washed out by surrounding context</span>. Signal is lost.</p>
+    </div>
+    <div style="background:rgba(255,255,255,0.05); border-radius:10px; padding:1.6em; text-align:center;">
+      <div style="font-size:2.8em; margin-bottom:0.2em;">📶</div>
+      <div style="font-size:0.85em; font-weight:700; color:var(--elastic-teal);">Signal-to-Noise Ratio</div>
+      <div style="font-size:0.7em; color:var(--elastic-muted); margin-top:0.6em; line-height:1.55;">
+        An effective chunking strategy maximises the relevance of context delivered to an agent.
+        The wrong strategy leaves agents reasoning over noise.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Slide 3: Architecture ─────────────────────────────────────────────── -->
+<section>
+  <h2>Architecture</h2>
+  <div class="cols" style="grid-template-columns:1fr 1fr; align-items:start;">
+    <div>
+      <img src="assets/arch.jpg" style="width:100%; max-height:560px; object-fit:contain; border-radius:6px;" alt="High-level architecture">
+    </div>
+    <div>
+      <ul>
+        <li>All logic executed from a <span class="teal">Jupyter notebook</span></li>
+        <li><span class="teal">Elastic Serverless</span> as the vector platform — provisioned via Terraform</li>
+        <li>Single sample markdown document — <code>sample_doc.md</code> — 2,427 words</li>
+        <li>Shared query: <em style="color:var(--elastic-yellow);">"How do distributed systems handle failures and recovery?"</em></li>
+        <li>Embedding: <code>.jina-embeddings-v5-text-small</code> <span class="muted">(1024 dims · EIS)</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Slide 4: Four Strategies ─────────────────────────────────────────── -->
+<section>
+  <h2>Four Strategies</h2>
+  <ul class="strategy-list">
+    <li>
+      <div class="strategy-num">1</div>
+      <div class="strategy-text">
+        <strong>Semantic Text — Automatic Chunking</strong>
+        <span class="muted">ES handles chunking, embedding, and retrieval. Zero pipeline overhead.</span>
+      </div>
+    </li>
+    <li>
+      <div class="strategy-num">2</div>
+      <div class="strategy-text">
+        <strong>Semantic Text — Pre-chunked Arrays</strong>
+        <span class="muted">Application controls chunk boundaries; ES still manages embedding.</span>
+      </div>
+    </li>
+    <li>
+      <div class="strategy-num">3</div>
+      <div class="strategy-text">
+        <strong>External Chunking — One Document Per Chunk</strong>
+        <span class="muted">Each chunk is an independent ES document with <code>dense_vector</code>. Enables per-chunk metadata, hybrid search, and reranking.</span>
+      </div>
+    </li>
+    <li>
+      <div class="strategy-num">4</div>
+      <div class="strategy-text">
+        <strong>External Chunking — Nested Chunks</strong>
+        <span class="muted">Chunks stored as nested objects inside the parent document. Atomic indexing, strict document cohesion.</span>
+      </div>
+    </li>
+  </ul>
+</section>
+
+<!-- ─── Slide 5: Strategy 1 Concept ──────────────────────────────────────── -->
+<section>
+  <div class="badge">Strategy 1</div>
+  <h2>Semantic Text — Automatic Chunking</h2>
+  <div class="cols" style="grid-template-columns:1fr 1fr; align-items:start;">
+    <div>
+      <img src="assets/scenario1.jpg" style="width:100%; max-height:560px; object-fit:contain; border-radius:6px;" alt="Scenario 1">
+    </div>
+    <div>
+      <p>Index the raw document as a single string. Elasticsearch automatically:</p>
+      <ul style="margin-top:0.3em;">
+        <li>Splits into chunks via the <span class="teal">recursive</span> strategy, aligned to markdown headings</li>
+        <li>Generates embeddings via <code>.jina-embeddings-v5-text-small</code> on EIS</li>
+        <li>Stores chunks internally per document</li>
+        <li>Returns ranked chunks via <span class="teal">semantic highlighting</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Slide 6: Strategy 1 Mapping & Ingest ─────────────────────────────── -->
+<section>
+  <div class="badge">Strategy 1</div>
+  <h2>Mapping &amp; Ingest</h2>
+  <div class="cols">
+    <pre><code class="language-python">scenario1_mapping = {
+    "mappings": {
+        "properties": {
+            "content": {
+                "type": "semantic_text",
+                "chunking_settings": {
+                    "strategy": "recursive",
+                    "max_chunk_size": 200,
+                    "separator_group": "markdown"
+                }
+            }
+        }
+    }
+}
+es.indices.create(index=S1_INDEX,
+                  body=scenario1_mapping)
+es.index(index=S1_INDEX, id=1,
+         document={"content": doc_content})</code></pre>
+    <div>
+      <p><span class="teal">18 chunks</span> auto-produced — aligned to markdown headings. No external library. No local inference.</p>
+      <div class="results" style="margin-top:0.3em;">Chunk  0:  62 words — # Building Resilient...
+Chunk  1: 199 words —  ## Foundations of...
+Chunk  2: 138 words —  ### The Fallacies of...
+Chunk  3: 108 words —  ## Consensus and...
+Chunk  4: 174 words —  ### Leader Election...
+...
+Chunk 17: 177 words —  ### Health Checks...</div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Slide 7: Strategy 1 Search & Results ─────────────────────────────── -->
+<section>
+  <div class="badge">Strategy 1</div>
+  <h2>Search &amp; Results</h2>
+  <div class="cols">
+    <pre><code class="language-python">response = es.search(
+    index=S1_INDEX,
+    body={
+        "query": {
+            "semantic": {
+                "field": "content",
+                "query": QUERY,
+            }
+        },
+        "_source": False,
+        "highlight": {
+            "fields": {
+                "content": {
+                    "type": "semantic",
+                    "number_of_fragments": 5,
+                    "order": "score",
+                }
+            }
+        },
+        "size": 5
+    },
+)</code></pre>
+    <div>
+      <p style="font-size:0.72em; margin-bottom:0.4em; color:var(--elastic-muted);">Top-5 chunks returned in relevance order</p>
+      <div class="results">Score: 0.8272
+  ## Handling Failure
+     ### Failure Detection...
+  # Building Resilient
+     Distributed Systems...
+  ## Foundations of
+     Distribution...
+  ### The Fallacies of
+     Distributed Computing...
+  ### Leaderless
+     Replication...</div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Slide 8: Strategy 1 Appraisal ────────────────────────────────────── -->
+<section>
+  <div class="badge">Strategy 1</div>
+  <h2>Appraisal</h2>
+  <div class="cols-3">
+    <div class="card">
+      <h3 class="teal">✓ Pros</h3>
+      <ul>
+        <li>Simplest implementation — index raw text, ES does the rest</li>
+        <li>Zero pipeline overhead — no external libraries or local inference</li>
+        <li>Configurable via <code>chunking_settings</code></li>
+        <li>Semantic highlighting returns chunks ranked by similarity</li>
+        <li>Compatible with hybrid BM25+vector search</li>
+      </ul>
+    </div>
+    <div class="card cons">
+      <h3 class="pink">✗ Cons</h3>
+      <ul>
+        <li>No per-chunk metadata — can't attach tags or filters to individual chunks</li>
+        <li>Chunks are internal — can't update or delete a single chunk without reindexing the whole document</li>
+      </ul>
+    </div>
+    <div class="card good">
+      <h3 class="yellow">⚡ Good For</h3>
+      <ul>
+        <li>Rapid prototyping — working semantic search in minutes</li>
+        <li>Teams without dedicated ML ops who want vector search out of the box</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Slide 9: Strategy 2 Concept ──────────────────────────────────────── -->
+<section>
+  <div class="badge">Strategy 2</div>
+  <h2>Semantic Text — Pre-chunked Arrays</h2>
+  <div class="cols" style="grid-template-columns:1.25fr 0.75fr; align-items:start;">
+    <div>
+      <img src="assets/scenario2.jpg" style="width:100%; max-height:560px; object-fit:contain; border-radius:6px;" alt="Scenario 2">
+    </div>
+    <div>
+      <p>Disable ES auto-chunking with <code>strategy: "none"</code>. Application pre-chunks the document and passes a <span class="teal">chunk array</span> to the <code>semantic_text</code> field.</p>
+      <p style="margin-top:0.6em;">ES still handles <span class="teal">embedding and retrieval</span> — no <code>dense_vector</code> or inference pipeline needed.</p>
+      <p style="margin-top:0.6em; color:var(--elastic-muted); font-size:0.78em;">Chunking strategy: regex split on markdown headings (H1 / H2 / H3)</p>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Slide 10: Strategy 2 Code & Results ──────────────────────────────── -->
+<section>
+  <div class="badge">Strategy 2</div>
+  <h2>Code &amp; Results</h2>
+  <div class="cols">
+    <pre><code class="language-python"># Disable auto-chunking
+mapping = {
+    "content": {
+        "type": "semantic_text",
+        "chunking_settings": {
+            "strategy": "none"
+        }
+    }
+}
+
+# Regex split on all markdown headings
+chunks = re.split(
+    r'(?=^#{1,3} )',
+    doc_content,
+    flags=re.MULTILINE
+)
+chunks = [c.strip() for c in chunks
+          if c.strip()]
+# → 24 chunks
+
+# Pass chunk array to semantic_text
+es.index(index=S2_INDEX,
+         document={"content": chunks})</code></pre>
+    <div>
+      <p style="font-size:0.72em; margin-bottom:0.4em;"><span class="teal">24 chunks</span> — one per heading section</p>
+      <div class="results">Score: 0.8147
+  # Building Resilient
+     Distributed Systems...
+  ### Failure Detection...
+  ### Why Distribute?...
+  ### The Fallacies of
+     Distributed Computing...
+  ## Observability in
+     Distributed Systems...</div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Slide 11: Strategy 2 Appraisal ───────────────────────────────────── -->
+<section>
+  <div class="badge">Strategy 2</div>
+  <h2>Appraisal</h2>
+  <div class="cols-3">
+    <div class="card">
+      <h3 class="teal">✓ Pros</h3>
+      <ul>
+        <li>Application controls exact chunk boundaries</li>
+        <li>ES still manages embedding — no local inference</li>
+        <li>Same simple <code>semantic_text</code> mapping as Strategy 1</li>
+        <li>Semantic highlighting retrieves the most relevant pre-defined chunks</li>
+      </ul>
+    </div>
+    <div class="card cons">
+      <h3 class="pink">✗ Cons</h3>
+      <ul>
+        <li>No per-chunk metadata</li>
+        <li>Can't independently update or delete a single chunk</li>
+        <li>Chunking quality is your responsibility</li>
+        <li>Each chunk must fit the inference model's token limit</li>
+      </ul>
+    </div>
+    <div class="card good">
+      <h3 class="yellow">⚡ Good For</h3>
+      <ul>
+        <li>Documents with clear structural boundaries — markdown headers, HTML sections, paragraphs</li>
+        <li>When you need chunking control without managing embedding infrastructure</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Slide 12: Strategy 3 Concept ─────────────────────────────────────── -->
+<section>
+  <div class="badge">Strategy 3</div>
+  <h2>External Chunking — One Document Per Chunk</h2>
+  <div class="cols" style="grid-template-columns:1.25fr 0.75fr; align-items:start;">
+    <div>
+      <img src="assets/scenario3.jpg" style="width:100%; max-height:440px; object-fit:contain; border-radius:6px;" alt="Scenario 3">
+    </div>
+    <div>
+      <p>Each chunk is indexed as an <span class="teal">independent top-level document</span> with a <code>dense_vector</code> field.</p>
+      <ul style="margin-top:0.3em;">
+        <li>Chunking: <code>semchunk</code> library (<code>chunk_size=200</code>)</li>
+        <li>Embeddings: Elastic Inference API</li>
+        <li>Per-chunk metadata: <code>parent_id</code>, <code>chunk_index</code></li>
+        <li>Vector quantization: <code>int8_hnsw</code></li>
+      </ul>
+      <p style="margin-top:0.3em; color:var(--elastic-muted); font-size:0.78em;">Same index also demonstrates hybrid search + reranking — no reindexing needed</p>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Slide 13: Strategy 3 Ingest & kNN ────────────────────────────────── -->
+<section>
+  <div class="badge">Strategy 3</div>
+  <h2>Ingest &amp; kNN Search</h2>
+  <div class="cols">
+    <pre><code class="language-python">chunks = chunk(doc_content,
+               chunk_size=200,
+               token_counter=token_counter)
+# → 15 chunks
+
+# Batch embed via Inference API
+result = es.inference.inference(
+    inference_id=EMBEDDING_MODEL,
+    task_type="text_embedding",
+    body={"input": batch}
+)
+
+# kNN search
+response = es.search(
+    index=S3_INDEX,
+    body={
+        "knn": {
+            "field": "embedding",
+            "query_vector": query_embedding,
+            "k": 5,
+            "num_candidates": 20
+        },
+        "size": 5
+    }
+)</code></pre>
+    <div>
+      <p style="font-size:0.72em; margin-bottom:0.4em; color:var(--elastic-muted);">kNN results — top-5 chunks</p>
+      <div class="results">Score: 0.8321  Chunk #7
+  This model offers high
+  availability...
+Score: 0.8024  Chunk #0
+  # Building Resilient
+  Distributed Systems...
+Score: 0.7957  Chunk #1
+  Availability is the
+  second driver...
+Score: 0.7740  Chunk #2
+  1. The network is
+  reliable...
+Score: 0.7685  Chunk #4
+  Protocols like Raft
+  and Paxos...</div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Slide 14: Strategy 3 Hybrid + Reranking ───────────────────────────── -->
+<section>
+  <div class="badge">Strategy 3</div>
+  <h2>Hybrid Search + Reranking</h2>
+  <div class="cols">
+    <pre><code class="language-python">response = es.options(
+    request_timeout=120).search(
+    index=S3_INDEX,   # same index as kNN
+    body={
+      "retriever": {
+        "text_similarity_reranker": {
+          "retriever": {
+            "linear": {
+              "retrievers": [
+                {"retriever": {"standard": {
+                    "query": {"match": {
+                      "chunk_text": QUERY}}}},
+                 "weight": 0.3},   # BM25
+                {"retriever": {"knn": {
+                    "field": "embedding",
+                    "query_vector": query_embedding,
+                    "k": 10}},
+                 "weight": 0.7}    # vector
+              ]}},
+          "inference_id": ".jina-reranker-v3",
+          "inference_text": QUERY,
+          "field": "chunk_text"
+        }
+      }
+    }
+)</code></pre>
+    <div>
+      <p style="font-size:0.72em; margin-bottom:0.4em;"><span class="teal">No reindexing required</span> — query-level capability</p>
+      <div class="results">Score: 1.2116  Chunk #7
+  This model offers high
+  availability...
+Score: 1.1384  Chunk #8
+  Circuit breakers prevent
+  a failing dependency...
+Score: 1.0229  Chunk #2
+  1. The network is
+  reliable...
+Score: 1.0068  Chunk #1
+  Availability is the
+  second driver...</div>
+      <p style="font-size:0.68em; margin-top:0.5em; color:var(--elastic-yellow);">
+        ★ Reranker surfaces Circuit Breakers (Chunk 8) — absent from pure kNN top-5
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Slide 15: Strategy 3 Appraisal ───────────────────────────────────── -->
+<section>
+  <div class="badge">Strategy 3</div>
+  <h2>Appraisal</h2>
+  <div class="cols-3">
+    <div class="card">
+      <h3 class="teal">✓ Pros</h3>
+      <ul>
+        <li>Each chunk is independent — update, delete, or reindex without touching others</li>
+        <li>Per-chunk metadata for filtering</li>
+        <li>Full BM25 support — hybrid search and standard highlighting</li>
+        <li>Any embedding model via ES inference endpoints; <code>int8_hnsw</code> quantization for efficient storage</li>
+      </ul>
+    </div>
+    <div class="card cons">
+      <h3 class="pink">✗ Cons</h3>
+      <ul>
+        <li>Requires an external chunking pipeline</li>
+        <li>More moving parts — chunking library, embedding generation</li>
+        <li>Chunk quality depends entirely on splitter configuration</li>
+      </ul>
+    </div>
+    <div class="card good">
+      <h3 class="yellow">⚡ Good For</h3>
+      <ul>
+        <li>Agentic AI apps needing filterable, retrievable chunks with metadata</li>
+        <li>Production systems requiring full control over model and retrieval</li>
+        <li>Multi-document corpora</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Slide 16: Strategy 4 Concept ─────────────────────────────────────── -->
+<section>
+  <div class="badge">Strategy 4</div>
+  <h2>External Chunking — Nested Chunks</h2>
+  <div class="cols" style="grid-template-columns:1fr 1fr; align-items:start;">
+    <div>
+      <img src="assets/scenario5.jpg" style="width:100%; max-height:440px; object-fit:contain; border-radius:6px;" alt="Scenario 4">
+    </div>
+    <div>
+      <ul>
+        <li>Chunks stored as <span class="teal">nested objects</span> inside the parent — atomic indexing, strict cohesion</li>
+        <li>Chunking: LangChain <code>RecursiveCharacterTextSplitter</code> (<code>chunk_size=800</code>, <code>chunk_overlap=100</code>)</li>
+        <li>28 chunks stored in one parent doc</li>
+        <li>Parent and all chunks indexed/deleted as a <span class="teal">single atomic unit</span></li>
+        <li>Query via <span class="teal">nested kNN</span> with <code>inner_hits</code></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Slide 17: Strategy 4 Code & Results ──────────────────────────────── -->
+<section>
+  <div class="badge">Strategy 4</div>
+  <h2>Code &amp; Results</h2>
+  <div class="cols">
+    <pre><code class="language-python">response = es.search(
+    index=S5_INDEX,
+    body={
+        "query": {
+            "nested": {
+                "path": "chunks",
+                "query": {
+                    "knn": {
+                        "field": "chunks.embedding",
+                        "query_vector": query_embedding,
+                        "num_candidates": 20
+                    }
+                },
+                "inner_hits": {
+                    "size": 5,
+                    "_source": [
+                        "chunks.chunk_index",
+                        "chunks.chunk_text"
+                    ]
+                }
+            }
+        },
+        "size": 1
+    },
+)</code></pre>
+    <div>
+      <p style="font-size:0.72em; margin-bottom:0.4em; color:var(--elastic-muted);">Parent document + matched inner hits</p>
+      <div class="results">Parent: Building Resilient
+  Distributed Systems
+  Score: 0.8300
+
+  Score: 0.8300  Chunk #12
+    ## Handling Failure
+    ### Failure Detection...
+  Score: 0.8086  Chunk #0
+    # Building Resilient...
+  Score: 0.7946  Chunk #4
+    Every design decision...
+  Score: 0.7936  Chunk #6
+    The challenge is what
+    happens when the leader...</div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Slide 18: Strategy 4 Appraisal ───────────────────────────────────── -->
+<section>
+  <div class="badge">Strategy 4</div>
+  <h2>Appraisal</h2>
+  <div class="cols-3">
+    <div class="card">
+      <h3 class="teal">✓ Pros</h3>
+      <ul>
+        <li>Document cohesion — chunks physically co-located with their parent</li>
+        <li>Atomic indexing — parent and all chunks indexed/deleted as one unit</li>
+        <li>Inner hits return matched chunks with scores while preserving parent context</li>
+      </ul>
+    </div>
+    <div class="card cons">
+      <h3 class="pink">✗ Cons</h3>
+      <ul>
+        <li>Nested kNN queries are more complex and slower than top-level kNN</li>
+        <li>Updating one chunk requires reindexing the entire parent</li>
+        <li>Cannot independently filter or paginate chunks across documents</li>
+        <li>Performance and doc size degrade as chunk count grows</li>
+      </ul>
+    </div>
+    <div class="card good">
+      <h3 class="yellow">⚡ Good For</h3>
+      <ul>
+        <li>Small-to-moderate collections with modest chunks per document</li>
+        <li>Document integrity is paramount</li>
+        <li>Always retrieving chunks in the context of their parent</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Slide 19: Conclusion ──────────────────────────────────────────────── -->
+<section style="text-align:center;">
+  <h2 style="margin-bottom:0.8em;">Conclusion</h2>
+  <div style="max-width:820px; margin:0 auto; text-align:left;">
+    <div class="conclusion-point">
+      <span class="dot">›</span>
+      <span><code>semantic_text</code> provides the most automation — index raw text, Elasticsearch handles the rest. Start here.</span>
+    </div>
+    <div class="conclusion-point">
+      <span class="dot">›</span>
+      <span><code>dense_vector</code> with external chunking gives full control — choose your chunker, your embedding model, and your retrieval strategy.</span>
+    </div>
+    <div class="conclusion-point">
+      <span class="dot">›</span>
+      <span>Hybrid BM25+vector search and reranking are <span class="teal">query-level capabilities</span> — no reindexing required to layer them in.</span>
+    </div>
+    <div class="conclusion-point">
+      <span class="dot">›</span>
+      <span>The right strategy depends on how much <span class="teal">control your agents need</span> over what they retrieve.</span>
+    </div>
+  </div>
+  <div style="margin-top:1.8em; font-size:0.75em; color:var(--elastic-muted);">
+    Full source &amp; notebook:&nbsp;
+    <a href="https://github.com/joeywhelan/es-chunking"
+       style="color:var(--elastic-teal);">github.com/joeywhelan/es-chunking</a>
+  </div>
+</section>
+
+</div><!-- /.slides -->
+</div><!-- /.reveal -->
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/plugin/highlight/highlight.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/plugin/notes/notes.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    slideNumber: 'c/t',
+    progress: true,
+    center: false,
+    margin: 0.03,
+    width: 1280,
+    height: 800,
+    plugins: [RevealHighlight, RevealNotes],
+  });
+</script>
+</body>
+</html>

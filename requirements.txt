@@ -1,0 +1,6 @@
+elasticsearch
+python-dotenv
+ipykernel
+ipywidgets
+semchunk
+langchain-text-splitters
