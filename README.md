@@ -1,14 +1,18 @@
 # Elastic Chunking Demo
 ## Contents
 1.  [Summary](#summary)
-2.  [Architecture](#architecture)
-3.  [Features](#features)
-4.  [Prerequisites](#prerequisites)
-5.  [Installation](#installation)
-6.  [Usage](#usage)
+2.  [Presentation](#presentation)
+3.  [Architecture](#architecture)
+4.  [Features](#features)
+5.  [Prerequisites](#prerequisites)
+6.  [Installation](#installation)
+7.  [Usage](#usage)
 
 ## Summary <a name="summary"></a>
 This is a demonstration of various document chunking techniques available with Elasticsearch.
+
+## Presentation <a name="presentation"></a>
+https://joeywhelan.github.io/es-chunking/
 
 ## Architecture <a name="architecture"></a>
 ![architecture](assets/arch.jpg) 
